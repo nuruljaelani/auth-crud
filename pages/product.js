@@ -4,6 +4,7 @@ import {
   AiFillDelete,
   AiFillPlusCircle,
   AiFillWarning,
+  AiFillEye
 } from "react-icons/ai";
 import {
   createColumnHelper,
@@ -17,6 +18,7 @@ import { useState } from "react";
 import axios from "axios";
 import Modal from "../components/Modal";
 import Router from "next/router";
+import Link from "next/link";
 
 const url = "https://testcrud.fikrisabriansyah.my.id/api/";
 
@@ -122,8 +124,6 @@ export default function Home({ products, token }) {
         price: res.data.data.price
       })
     }
-
-    console.log(res.data);
   };
 
   // Handle Update Data
@@ -171,6 +171,14 @@ export default function Home({ products, token }) {
       cell: ({ row }) => {
         return (
           <div className="flex gap-2">
+          <Link href={"/product/"+ row.original.id}>
+            <button
+              type="button"
+              className="text-blue-500 border p-1 rounded"
+            >
+              <AiFillEye />
+            </button>
+          </Link>
             <button
               type="button"
               className="text-blue-500 border p-1 rounded"
