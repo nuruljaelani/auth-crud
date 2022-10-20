@@ -4,7 +4,7 @@ import {
   AiFillDelete,
   AiFillPlusCircle,
   AiFillWarning,
-  AiFillEye
+  AiFillEye,
 } from "react-icons/ai";
 import {
   createColumnHelper,
@@ -19,8 +19,18 @@ import axios from "axios";
 import Modal from "../components/Modal";
 import Router from "next/router";
 import Link from "next/link";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
 
 const url = "https://testcrud.fikrisabriansyah.my.id/api/";
+
+const schema = yup
+  .object({
+    name: yup.string().required(),
+    price: yup.number().required(),
+  })
+  .required();
 
 export async function getServerSideProps(context) {
   const token = context.req.cookies.token;
@@ -48,7 +58,7 @@ export default function Home({ products, token }) {
   });
   const [modalEdit, setModalEdit] = useState({
     show: false,
-    id: null
+    id: null,
   });
 
   const initialState = {
@@ -58,6 +68,15 @@ export default function Home({ products, token }) {
   };
   const [product, setProduct] = useState(initialState);
 
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(schema),
+  });
+
   const handleChange = (e) => {
     setProduct((prevState) => ({
       ...prevState,
@@ -66,9 +85,9 @@ export default function Home({ products, token }) {
   };
 
   // Submit Form Insert
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const newProduct = await axios.post(url + "product/store", product, {
+  const onSubmit = async (data) => {
+    // e.preventDefault();
+    const newProduct = await axios.post(url + "product/store", data, {
       headers: {
         "Content-Type": "application/json",
         Authorization: "Bearer " + token,
@@ -105,31 +124,34 @@ export default function Home({ products, token }) {
   const handleEdit = async (id) => {
     setModalEdit({
       show: true,
-      id: id
-    })
+      id: id,
+    });
     const res = await axios.get(url + "product/show", {
       headers: {
         "Content-Type": "application/json",
         Authorization: "Bearer " + token,
       },
       params: {
-        product_id: id
-      }
+        product_id: id,
+      },
     });
 
     if (res.data.status) {
       setProduct({
         product_id: res.data.data.id,
         name: res.data.data.name,
-        price: res.data.data.price
-      })
+        price: res.data.data.price,
+      });
+      setValue("name", res.data.data.name);
+      setValue("price", res.data.data.price);
+      setValue("product_id", res.data.data.id);
     }
   };
 
   // Handle Update Data
-  const handleSubmitUpdate = async (e) => {
-    e.preventDefault();
-    const updatedProduct = await axios.post(url + "product/update", product, {
+  const onSubmitUpdate = async (data) => {
+    // e.preventDefault();
+    const updatedProduct = await axios.post(url + "product/update", data, {
       headers: {
         "Content-Type": "application/json",
         Authorization: "Bearer " + token,
@@ -139,12 +161,10 @@ export default function Home({ products, token }) {
     if (updatedProduct.data.status) {
       setModalEdit({
         show: false,
-        id: null
+        id: null,
       });
       Router.reload();
     }
-
-    console.log(updatedProduct)
   };
 
   // Column
@@ -164,21 +184,21 @@ export default function Home({ products, token }) {
       header: "Product Name",
     }),
     columnHelper.accessor("price", {
-      cell: (info) => info.getValue(),
+      cell: (info) => new Intl.NumberFormat("id").format(info.getValue()),
       header: "Price",
     }),
     columnHelper.accessor("id", {
       cell: ({ row }) => {
         return (
           <div className="flex gap-2">
-          <Link href={"/product/"+ row.original.id}>
-            <button
-              type="button"
-              className="text-blue-500 border p-1 rounded"
-            >
-              <AiFillEye />
-            </button>
-          </Link>
+            <Link href={"/product/" + row.original.id}>
+              <button
+                type="button"
+                className="text-blue-500 border p-1 rounded"
+              >
+                <AiFillEye />
+              </button>
+            </Link>
             <button
               type="button"
               className="text-blue-500 border p-1 rounded"
@@ -214,7 +234,12 @@ export default function Home({ products, token }) {
   });
   return (
     <>
-      <Layout title="Product" modal={modal} setModal={() => setModal(false)} token={token}>
+      <Layout
+        title="Product"
+        modal={modal}
+        setModal={() => setModal(false)}
+        token={token}
+      >
         <div className="flex flex-col px-6 gap-8">
           <p className="font-bold text-xl md:text-2xl lg:text-3xl">Product</p>
           <div className="p-6 bg-white rounded-xl drop-shadow-md flex flex-col gap-4">
@@ -339,28 +364,39 @@ export default function Home({ products, token }) {
           setModal={() => setModal(false)}
           title="Insert Product"
         >
-          <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+          <form
+            className="flex flex-col gap-4"
+            onSubmit={handleSubmit(onSubmit)}
+          >
             <div className="flex gap-4 items-center">
               <label className="w-1/3 font-medium text-gray-600">
                 Product Name
               </label>
-              <input
-                type="text"
-                name="name"
-                className="bg-white border rounded-md p-2 w-full ring-1 focus:ring-sky-600 focus:outline-none"
-                value={product.name || ""}
-                onChange={handleChange}
-              />
+              <div className="flex flex-col w-full">
+                <input
+                  type="text"
+                  name="name"
+                  className="bg-white border rounded-md p-2 w-full ring-1 focus:ring-sky-600 focus:outline-none"
+                  {...register("name")}
+                />
+                <p className="text-xs font-medium text-red-500">
+                  {errors.name?.message}
+                </p>
+              </div>
             </div>
             <div className="flex gap-4 items-center">
               <label className="w-1/3 font-medium text-gray-600">Price</label>
-              <input
-                type="number"
-                name="price"
-                className="bg-white border rounded-md p-2 w-full ring-1 focus:ring-sky-600 focus:outline-none"
-                value={product.price || ""}
-                onChange={handleChange}
-              />
+              <div className="flex flex-col w-full">
+                <input
+                  type="number"
+                  name="price"
+                  className="bg-white border rounded-md p-2 w-full ring-1 focus:ring-sky-600 focus:outline-none"
+                  {...register("price")}
+                />
+                <p className="text-xs font-medium text-red-500">
+                  {errors.price?.message}
+                </p>
+              </div>
             </div>
             <div className="flex gap-4">
               <button
@@ -383,38 +419,48 @@ export default function Home({ products, token }) {
         {/* Modal Edit Data */}
         <Modal
           modal={modalEdit.show}
-          setModal={() => setModalEdit({show:false, id:null})}
+          setModal={() => setModalEdit({ show: false, id: null })}
           title="Edit Product"
         >
-          <form className="flex flex-col gap-4" onSubmit={handleSubmitUpdate}>
+          <form
+            className="flex flex-col gap-4"
+            onSubmit={handleSubmit(onSubmitUpdate)}
+          >
             <div className="flex gap-4 items-center">
               <label className="w-1/3 font-medium text-gray-600">
                 Product Name
               </label>
-              <input
-                type="text"
-                name="name"
-                className="bg-white border rounded-md p-2 w-full ring-1 focus:ring-sky-600 focus:outline-none"
-                value={product.name || ""}
-                onChange={handleChange}
-              />
-              <input
-                type="hidden"
-                name="product_id"
-                className="bg-white border rounded-md p-2 w-full ring-1 focus:ring-sky-600 focus:outline-none"
-                value={product.product_id || ""}
-                readOnly
-              />
+              <div className="flex flex-col w-full">
+                <input
+                  type="text"
+                  name="name"
+                  className="bg-white border rounded-md p-2 w-full ring-1 focus:ring-sky-600 focus:outline-none"
+                  {...register("name")}
+                />
+                <input
+                  type="hidden"
+                  name="product_id"
+                  className="bg-white border rounded-md p-2 w-full ring-1 focus:ring-sky-600 focus:outline-none"
+                  {...register("product_id")}
+                />
+                <p className="text-xs font-medium text-red-500">
+                  {errors.name?.message}
+                </p>
+              </div>
             </div>
             <div className="flex gap-4 items-center">
               <label className="w-1/3 font-medium text-gray-600">Price</label>
-              <input
-                type="number"
-                name="price"
-                className="bg-white border rounded-md p-2 w-full ring-1 focus:ring-sky-600 focus:outline-none"
-                value={product.price || ""}
-                onChange={handleChange}
-              />
+              <div className="flex flex-col w-full">
+                <input
+                  type="number"
+                  name="price"
+                  className="bg-white border rounded-md p-2 w-full ring-1 focus:ring-sky-600 focus:outline-none"
+                  {...register("price")}
+                />
+                <p className="text-xs font-medium text-red-500">
+                  {errors.price?.message}
+                </p>
+              </div>
             </div>
             <div className="flex gap-4">
               <button
@@ -426,7 +472,7 @@ export default function Home({ products, token }) {
               <button
                 type="button"
                 className="bg-slate-300 hover:bg-slate-400 w-fit px-6 py-2 rounded-xl text-slate-800 font-medium"
-                onClick={() => setModalEdit({show:false, id:null})}
+                onClick={() => setModalEdit({ show: false, id: null })}
               >
                 Cancel
               </button>

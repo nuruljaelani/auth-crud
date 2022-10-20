@@ -1,31 +1,39 @@
 import axios from "axios";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import React, { useState } from "react";
+import React from "react";
+import { useForm } from "react-hook-form";
+import {yupResolver} from "@hookform/resolvers/yup"
+import * as yup from "yup"
+
+const schema = yup.object({
+  email: yup.string().required(),
+  password: yup.string().required()
+}).required()
 
 const Login = () => {
 
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const { register, handleSubmit, formState:{errors} } = useForm({
+    resolver: yupResolver(schema)
+  });
 
   const router = useRouter()
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+  const onSubmit = async (data) => {
+    console.log(data)
 
-    const credentials = {email, password}
-    const user = await axios.post('/api/auth', credentials, {
+    // const credentials = { email, password };
+    const user = await axios.post("/api/auth", data, {
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
       },
-      withCredentials: true
-    })
-    
-    // console.log(user)
-    if(user.status) {
-      router.push("/dashboard")
+      withCredentials: true,
+    });
+
+    if (user.status) {
+      router.push("/dashboard");
     }
-  }
+  };
   return (
     <div className="bg-slate-100">
       <Head>
@@ -39,30 +47,37 @@ const Login = () => {
           <div className="border-b drop-shadow-lg bg-white rounded-t-lg p-8">
             <p className="font-semibold text-xl text-sky-700">Login</p>
           </div>
-          <form className="flex flex-col p-8 gap-8" onSubmit={e => handleSubmit(e)} method="post">
+          <form
+            className="flex flex-col p-8 gap-8"
+            onSubmit={handleSubmit(onSubmit)}
+            method="post"
+          >
             <div className="flex flex-col">
               {/* <label className="text-slate-700">Email</label> */}
               <input
                 type="text"
-                name="email"
-                onChange={(e) => setEmail(e.target.value)}
+                {...register("email")}
                 className="bg-white w-full text-gray-700 rounded-xl lg:rounded-3xl px-4 py-2 ring-1 focus:outline-none focus:ring-sky-500"
                 placeholder="Email"
               />
+              <p className="text-xs font-medium text-red-500">{errors.email?.message}</p>
             </div>
-						<div className="flex flex-col">
+            <div className="flex flex-col">
               {/* <label className="text-slate-700">Password</label> */}
               <input
                 type="password"
-                name="password"
-                onChange={(e) => setPassword(e.target.value)}
+                {...register("password")}
                 className="bg-white w-full text-gray-700 rounded-xl lg:rounded-3xl px-4 py-2 ring-1 focus:outline-none focus:ring-sky-500"
                 placeholder="Password"
               />
+              <p className="text-xs font-medium text-red-500">{errors.password?.message}</p>
             </div>
-						<button type="submit" className="bg-emerald-700 p-2 rounded-3xl hover:bg-emerald-800 drop-shadow">
-							<p className="text-white uppercase font-medium">sign in</p>
-						</button>
+            <button
+              type="submit"
+              className="bg-emerald-700 p-2 rounded-3xl hover:bg-emerald-800 drop-shadow"
+            >
+              <p className="text-white uppercase font-medium">sign in</p>
+            </button>
           </form>
         </div>
       </main>
